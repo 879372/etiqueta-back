@@ -1,3 +1,5 @@
+import textwrap
+
 def generate_tspl(data: dict) -> str:
     """
     Gera os comandos TSPL2 para a Bematech LB-1000.
@@ -25,23 +27,26 @@ def generate_tspl(data: dict) -> str:
             'CLS',
         ]
         
-        # Posições X das 3 colunas (aumentado para afastar da borda esquerda)
-        xs = [35, 275, 515]
+        # Posições X das 3 colunas (reduzido para ir um pouco mais para a esquerda)
+        xs = [20, 260, 500]
         
         for x in xs:
-            # Nome do produto (Y=25), fonte 1 (menor)
-            product_trunc = product_name[:22] # Limita caracteres para não vazar
-            commands.append(f'TEXT {x},25,"1",0,1,1,"{product_trunc}"')
+            # Nome do produto com quebra de linha inteligente (máx 22 chars, 2 linhas)
+            wrapped_name = textwrap.wrap(product_name, width=22)[:2]
             
-            # Código interno e Preço na mesma linha (Y=50)
-            commands.append(f'TEXT {x},50,"1",0,1,1,"COD:{code}"')
-            commands.append(f'TEXT {x + 100},50,"1",0,1,1,"{price_display}"')
+            y_offset = 10
+            for line in wrapped_name:
+                commands.append(f'TEXT {x},{y_offset},"1",0,1,1,"{line}"')
+                y_offset += 15
             
-            # Código de barras baixo (Y=75), altura 30 dots
-            # Usando proporção 1,1 para ficar mais estreito e caber
+            # Código interno e Preço (Y=45 para caber embaixo das 2 linhas de texto)
+            commands.append(f'TEXT {x},45,"1",0,1,1,"COD:{code}"')
+            commands.append(f'TEXT {x + 100},45,"1",0,1,1,"{price_display}"')
+            
+            # Código de barras (Y=65), altura 30 dots
             if barcode:
-                commands.append(f'BARCODE {x},75,"128",30,0,0,1,1,"{barcode}"')
-                commands.append(f'TEXT {x},110,"1",0,1,1,"{barcode}"')
+                commands.append(f'BARCODE {x},65,"128",30,0,0,1,1,"{barcode}"')
+                commands.append(f'TEXT {x},100,"1",0,1,1,"{barcode}"')
                 
         commands.append(f'PRINT {copies},1')
     
