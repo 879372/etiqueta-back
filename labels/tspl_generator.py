@@ -38,4 +38,4 @@ def generate_tspl(data: dict) -> str:
         f'PRINT {copies},1',
     ]
 
-    return '\r\n'.join(commands)
+    return '\r\n'.join(commands) + '\r\n'
