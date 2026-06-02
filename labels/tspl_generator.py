@@ -94,21 +94,21 @@ def generate_tspl(data: dict) -> any:
             'CLS',
         ]
         
-        # Nome do produto no topo (Y=30 para dar margem superior exata)
+        # Nome do produto no topo (Y=20 para subir tudo)
         product_trunc = product_name[:40] 
-        commands1.append(f'TEXT 50,30,"3",0,1,1,"{product_trunc}"')
+        commands1.append(f'TEXT 50,20,"3",0,1,1,"{product_trunc}"')
         
         tspl_str1 = '\r\n'.join(commands1) + '\r\n'
         
         # O resto dos comandos
         commands2 = []
-        commands2.append(f'TEXT 250,110,"2",0,1,1,"COD.: {code}"')
+        commands2.append(f'TEXT 250,100,"2",0,1,1,"COD.: {code}"')
         
         if barcode:
-            commands2.append(f'BARCODE 250,140,"128",60,1,0,2,2,"{barcode}"')
+            commands2.append(f'BARCODE 250,130,"128",60,1,0,2,2,"{barcode}"')
             
-        # Preço alinhado com o código de barras
-        commands2.append(f'TEXT 580,140,"3",0,2,2,"{price_display}"')
+        # Preço alinhado com o código de barras, puxado mais para a esquerda (X=530)
+        commands2.append(f'TEXT 530,130,"3",0,2,2,"{price_display}"')
         commands2.append(f'PRINT {copies},1')
         
         tspl_str2 = '\r\n'.join(commands2) + '\r\n'
@@ -116,7 +116,7 @@ def generate_tspl(data: dict) -> any:
         # Cria array de bytes completo para enviar como HEX e evitar corrupção de charset
         raw_bytes = bytearray()
         raw_bytes.extend(tspl_str1.encode('iso-8859-1'))
-        raw_bytes.extend(generate_logo_bitmap(50, 100)) # Logo X=50, Y=100
+        raw_bytes.extend(generate_logo_bitmap(50, 90)) # Logo subiu para Y=90
         raw_bytes.extend(tspl_str2.encode('iso-8859-1'))
         
         return [{
