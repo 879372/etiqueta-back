@@ -1,5 +1,4 @@
 import textwrap
-import base64
 import os
 from io import BytesIO
 try:
@@ -7,19 +6,32 @@ try:
 except ImportError:
     Image = None
 
-def get_logo_base64():
+def generate_logo_bitmap(x, y):
     logo_path = os.path.join(os.path.dirname(__file__), 'image.png')
-    if os.path.exists(logo_path):
-        if Image:
-            img = Image.open(logo_path)
-            img.thumbnail((200, 200)) # Ajusta para caber bem no canto esquerdo (máx 200px)
-            buffer = BytesIO()
-            img.save(buffer, format="PNG")
-            return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode('utf-8')
-        else:
-            with open(logo_path, 'rb') as f:
-                return "data:image/png;base64," + base64.b64encode(f.read()).decode('utf-8')
-    return None
+    if not os.path.exists(logo_path) or not Image:
+        return b""
+        
+    img = Image.open(logo_path).convert('1')
+    img.thumbnail((200, 180)) # Resize to max 200x180 dots
+    width, height = img.size
+    
+    width_bytes = (width + 7) // 8
+    bitmap_data = bytearray()
+    
+    for py in range(height):
+        for px in range(width_bytes):
+            byte = 0
+            for bit in range(8):
+                ix = px * 8 + bit
+                if ix < width:
+                    # In PIL '1' mode, 0 is black, 255 is white
+                    pixel = img.getpixel((ix, py))
+                    if pixel == 0:
+                        byte |= (1 << (7 - bit))
+            bitmap_data.append(byte)
+            
+    header = f'BITMAP {x},{y},{width_bytes},{height},0,'.encode('ascii')
+    return header + bytes(bitmap_data) + b'\r\n'
 
 def generate_tspl(data: dict) -> any:
     """
@@ -43,7 +55,7 @@ def generate_tspl(data: dict) -> any:
         # Colunas com largura aprox de 30mm (240 dots)
         commands = [
             'SIZE 90 mm, 15 mm',
-            'GAP 3 mm, 0 mm',
+            'GAP 2 mm, 0 mm',
             'DIRECTION 1',  # Invertido para sair de cabeça para cima
             'CLS',
         ]
@@ -70,6 +82,7 @@ def generate_tspl(data: dict) -> any:
                 commands.append(f'TEXT {x},100,"1",0,1,1,"{barcode}"')
                 
         commands.append(f'PRINT {copies},1')
+        return '\r\n'.join(commands) + '\r\n'
 
     elif model == 'medium_115x35':
         # Etiqueta Argox 115x35 (1 coluna larga com Logo)
@@ -86,20 +99,8 @@ def generate_tspl(data: dict) -> any:
         commands1.append(f'TEXT 30,20,"3",0,1,1,"{product_trunc}"')
         
         # Converte os primeiros comandos em string
-        tspl_str1 = '\\r\\n'.join(commands1) + '\\r\\n'
+        tspl_str1 = '\r\n'.join(commands1) + '\r\n'
         
-        result_array = [tspl_str1]
-        
-        # Insere a Logo via QZ Tray
-        logo_b64 = get_logo_base64()
-        if logo_b64:
-            result_array.append({
-                "type": "raw",
-                "format": "image",
-                "data": logo_b64,
-                "options": { "language": "TSPL", "x": 30, "y": 100 }
-            })
-            
         # O resto dos comandos
         commands2 = []
         commands2.append(f'TEXT 280,100,"2",0,1,1,"COD: {code}"')
@@ -111,10 +112,19 @@ def generate_tspl(data: dict) -> any:
         commands2.append(f'TEXT 650,140,"4",0,1,1,"{price_display}"')
         commands2.append(f'PRINT {copies},1')
         
-        tspl_str2 = '\\r\\n'.join(commands2) + '\\r\\n'
-        result_array.append(tspl_str2)
+        tspl_str2 = '\r\n'.join(commands2) + '\r\n'
         
-        return result_array
+        # Cria array de bytes completo para enviar como HEX e evitar corrupção de charset
+        raw_bytes = bytearray()
+        raw_bytes.extend(tspl_str1.encode('iso-8859-1'))
+        raw_bytes.extend(generate_logo_bitmap(30, 100))
+        raw_bytes.extend(tspl_str2.encode('iso-8859-1'))
+        
+        return [{
+            "type": "raw",
+            "format": "hex",
+            "data": raw_bytes.hex()
+        }]
     
     else:
         # Etiqueta Padrão Grande (100x60mm)
