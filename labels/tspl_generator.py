@@ -102,14 +102,14 @@ def generate_tspl(data: dict) -> any:
         
         # O resto dos comandos
         commands2 = []
-        commands2.append(f'TEXT 300,120,"2",0,1,1,"COD: {code}"')
+        commands2.append(f'TEXT 220,120,"2",0,1,1,"COD: {code}"')
         
         if barcode:
             # Altura 60 em vez de 80 para dar margem inferior
-            commands2.append(f'BARCODE 300,160,"128",60,1,0,2,2,"{barcode}"')
+            commands2.append(f'BARCODE 220,160,"128",60,1,0,2,2,"{barcode}"')
             
-        # Preço (Aumentado: tamanho 2x2 para dar efeito negrito e maior)
-        commands2.append(f'TEXT 500,140,"4",0,2,2,"{price_display}"')
+        # Preço (Aumentado: tamanho 2x2 na fonte 3 para ficar negrito mas caber na etiqueta)
+        commands2.append(f'TEXT 600,140,"3",0,2,2,"{price_display}"')
         commands2.append(f'PRINT {copies},1')
         
         tspl_str2 = '\r\n'.join(commands2) + '\r\n'
