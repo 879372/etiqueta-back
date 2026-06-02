@@ -12,7 +12,7 @@ def generate_logo_bitmap(x, y):
         return b""
         
     img = Image.open(logo_path).convert('1')
-    img.thumbnail((200, 180)) # Resize to max 200x180 dots
+    img.thumbnail((120, 120)) # Reduced max size to 120x120 to leave bottom margin
     width, height = img.size
     
     width_bytes = (width + 7) // 8
@@ -94,22 +94,22 @@ def generate_tspl(data: dict) -> any:
             'CLS',
         ]
         
-        # Nome do produto no topo (Y=20)
-        product_trunc = product_name[:50]
-        commands1.append(f'TEXT 30,20,"3",0,1,1,"{product_trunc}"')
+        # Nome do produto no topo (Y=40 para dar margem superior)
+        product_trunc = product_name[:35] # Limita a 35 chars para não encostar na borda direita
+        commands1.append(f'TEXT 60,40,"3",0,1,1,"{product_trunc}"')
         
-        # Converte os primeiros comandos em string
         tspl_str1 = '\r\n'.join(commands1) + '\r\n'
         
         # O resto dos comandos
         commands2 = []
-        commands2.append(f'TEXT 280,100,"2",0,1,1,"COD: {code}"')
+        commands2.append(f'TEXT 300,120,"2",0,1,1,"COD: {code}"')
         
         if barcode:
-            commands2.append(f'BARCODE 280,140,"128",80,1,0,2,2,"{barcode}"')
+            # Altura 60 em vez de 80 para dar margem inferior
+            commands2.append(f'BARCODE 300,160,"128",60,1,0,2,2,"{barcode}"')
             
-        # Preço em destaque à direita (Y=140)
-        commands2.append(f'TEXT 650,140,"4",0,1,1,"{price_display}"')
+        # Preço (X=580 para deixar margem direita)
+        commands2.append(f'TEXT 580,160,"4",0,1,1,"{price_display}"')
         commands2.append(f'PRINT {copies},1')
         
         tspl_str2 = '\r\n'.join(commands2) + '\r\n'
@@ -117,7 +117,7 @@ def generate_tspl(data: dict) -> any:
         # Cria array de bytes completo para enviar como HEX e evitar corrupção de charset
         raw_bytes = bytearray()
         raw_bytes.extend(tspl_str1.encode('iso-8859-1'))
-        raw_bytes.extend(generate_logo_bitmap(30, 100))
+        raw_bytes.extend(generate_logo_bitmap(60, 110)) # Logo X=60, Y=110
         raw_bytes.extend(tspl_str2.encode('iso-8859-1'))
         
         return [{
