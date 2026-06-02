@@ -49,6 +49,33 @@ def generate_tspl(data: dict) -> str:
                 commands.append(f'TEXT {x},100,"1",0,1,1,"{barcode}"')
                 
         commands.append(f'PRINT {copies},1')
+
+    elif model == 'medium_115x35':
+        # Etiqueta Argox 115x35 (1 coluna larga)
+        # Largura total 115mm (920 dots), Altura 35mm (280 dots)
+        commands = [
+            'SIZE 115 mm, 35 mm',
+            'GAP 3 mm, 0 mm',
+            'DIRECTION 1',
+            'CLS',
+        ]
+        
+        # Nome do produto (Y=20)
+        # Como é larga, podemos usar fonte 2 ou 3 e não precisa quebrar linha logo cedo
+        product_trunc = product_name[:45]
+        commands.append(f'TEXT 30,20,"2",0,1,1,"{product_trunc}"')
+        
+        # Código interno (Y=70)
+        commands.append(f'TEXT 30,70,"2",0,1,1,"COD: {code}"')
+        
+        # Código de barras (Y=120) - bem grande
+        if barcode:
+            commands.append(f'BARCODE 30,120,"128",80,1,0,2,2,"{barcode}"')
+            
+        # Preço em destaque à direita (Y=120)
+        commands.append(f'TEXT 550,120,"4",0,1,1,"{price_display}"')
+        
+        commands.append(f'PRINT {copies},1')
     
     else:
         # Etiqueta Padrão Grande (100x60mm)
