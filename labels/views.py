@@ -5,22 +5,21 @@ from .tspl_generator import generate_tspl
 import base64
 import os
 from django.conf import settings
-from OpenSSL import crypto
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization
 
 
 @api_view(['POST'])
 def generate_tspl_view(request):
-    """
-    Recebe os dados da etiqueta e retorna o TSPL2 gerado.
-    """
     data = request.data
-
-    # Validação mínima
-    required = ['product_name', 'barcode', 'price']
-    for field in required:
-        if not data.get(field):
+    
+    # Validação simples
+    required_fields = ['product_name', 'code', 'price']
+    for field in required_fields:
+        if field not in data:
             return Response(
-                {'error': f'Campo obrigatório ausente: {field}'},
+                {'error': f'O campo {field} é obrigatório'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -38,12 +37,18 @@ def sign_qz(request):
     
     try:
         key_path = os.path.join(settings.BASE_DIR, 'private-key.pem')
-        with open(key_path, 'r') as key_file:
-            key_data = key_file.read()
+        with open(key_path, 'rb') as key_file:
+            private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None
+            )
         
-        pkey = crypto.load_privatekey(crypto.FILETYPE_PEM, key_data)
-        sign = crypto.sign(pkey, message.encode('utf-8'), 'sha512')
+        signature = private_key.sign(
+            message.encode('utf-8'),
+            padding.PKCS1v15(),
+            hashes.SHA512()
+        )
         
-        return Response(base64.b64encode(sign).decode('utf-8'), status=status.HTTP_200_OK)
+        return Response(base64.b64encode(signature).decode('utf-8'), status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
