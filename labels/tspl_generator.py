@@ -1,6 +1,27 @@
 import textwrap
+import base64
+import os
+from io import BytesIO
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
-def generate_tspl(data: dict) -> str:
+def get_logo_base64():
+    logo_path = os.path.join(os.path.dirname(__file__), 'image.png')
+    if os.path.exists(logo_path):
+        if Image:
+            img = Image.open(logo_path)
+            img.thumbnail((200, 200)) # Ajusta para caber bem no canto esquerdo (máx 200px)
+            buffer = BytesIO()
+            img.save(buffer, format="PNG")
+            return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode('utf-8')
+        else:
+            with open(logo_path, 'rb') as f:
+                return "data:image/png;base64," + base64.b64encode(f.read()).decode('utf-8')
+    return None
+
+def generate_tspl(data: dict) -> any:
     """
     Gera os comandos TSPL2 para a Bematech LB-1000.
     Etiqueta: 100mm x 60mm
@@ -51,31 +72,49 @@ def generate_tspl(data: dict) -> str:
         commands.append(f'PRINT {copies},1')
 
     elif model == 'medium_115x35':
-        # Etiqueta Argox 115x35 (1 coluna larga)
+        # Etiqueta Argox 115x35 (1 coluna larga com Logo)
         # Largura total 115mm (920 dots), Altura 35mm (280 dots)
-        commands = [
+        commands1 = [
             'SIZE 115 mm, 35 mm',
             'GAP 3 mm, 0 mm',
             'DIRECTION 1',
             'CLS',
         ]
         
-        # Nome do produto (Y=20)
-        # Como é larga, podemos usar fonte 2 ou 3 e não precisa quebrar linha logo cedo
-        product_trunc = product_name[:45]
-        commands.append(f'TEXT 30,20,"2",0,1,1,"{product_trunc}"')
+        # Nome do produto no topo (Y=20)
+        product_trunc = product_name[:50]
+        commands1.append(f'TEXT 30,20,"3",0,1,1,"{product_trunc}"')
         
-        # Código interno (Y=70)
-        commands.append(f'TEXT 30,70,"2",0,1,1,"COD: {code}"')
+        # Converte os primeiros comandos em string
+        tspl_str1 = '\\r\\n'.join(commands1) + '\\r\\n'
         
-        # Código de barras (Y=120) - bem grande
-        if barcode:
-            commands.append(f'BARCODE 30,120,"128",80,1,0,2,2,"{barcode}"')
+        result_array = [tspl_str1]
+        
+        # Insere a Logo via QZ Tray
+        logo_b64 = get_logo_base64()
+        if logo_b64:
+            result_array.append({
+                "type": "raw",
+                "format": "image",
+                "data": logo_b64,
+                "options": { "language": "TSPL", "x": 30, "y": 100 }
+            })
             
-        # Preço em destaque à direita (Y=120)
-        commands.append(f'TEXT 550,120,"4",0,1,1,"{price_display}"')
+        # O resto dos comandos
+        commands2 = []
+        commands2.append(f'TEXT 280,100,"2",0,1,1,"COD: {code}"')
         
-        commands.append(f'PRINT {copies},1')
+        if barcode:
+            commands2.append(f'BARCODE 280,140,"128",80,1,0,2,2,"{barcode}"')
+            
+        # Preço em destaque à direita (Y=140)
+        commands2.append(f'TEXT 650,140,"4",0,1,1,"{price_display}"')
+        commands2.append(f'PRINT {copies},1')
+        
+        tspl_str2 = '\\r\\n'.join(commands2) + '\\r\\n'
+        result_array.append(tspl_str2)
+        
+        return result_array
     
     else:
         # Etiqueta Padrão Grande (100x60mm)
