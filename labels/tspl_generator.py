@@ -108,8 +108,8 @@ def generate_tspl(data: dict) -> any:
             # Altura 60 em vez de 80 para dar margem inferior
             commands2.append(f'BARCODE 300,160,"128",60,1,0,2,2,"{barcode}"')
             
-        # Preço (X=580 para deixar margem direita)
-        commands2.append(f'TEXT 580,160,"4",0,1,1,"{price_display}"')
+        # Preço (Aumentado: tamanho 2x2 para dar efeito negrito e maior)
+        commands2.append(f'TEXT 500,140,"4",0,2,2,"{price_display}"')
         commands2.append(f'PRINT {copies},1')
         
         tspl_str2 = '\r\n'.join(commands2) + '\r\n'
