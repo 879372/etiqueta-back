@@ -25,23 +25,23 @@ def generate_tspl(data: dict) -> str:
             'CLS',
         ]
         
-        # Posições X das 3 colunas (margem + 240 dots por coluna)
-        xs = [10, 250, 490]
+        # Posições X das 3 colunas (aumentado para afastar da borda esquerda)
+        xs = [35, 275, 515]
         
         for x in xs:
-            # Nome do produto (Y=10), fonte 1 (menor)
+            # Nome do produto (Y=25), fonte 1 (menor)
             product_trunc = product_name[:22] # Limita caracteres para não vazar
-            commands.append(f'TEXT {x},10,"1",0,1,1,"{product_trunc}"')
+            commands.append(f'TEXT {x},25,"1",0,1,1,"{product_trunc}"')
             
-            # Código interno e Preço na mesma linha (Y=35)
-            commands.append(f'TEXT {x},35,"1",0,1,1,"COD:{code}"')
-            commands.append(f'TEXT {x + 100},35,"1",0,1,1,"{price_display}"')
+            # Código interno e Preço na mesma linha (Y=50)
+            commands.append(f'TEXT {x},50,"1",0,1,1,"COD:{code}"')
+            commands.append(f'TEXT {x + 100},50,"1",0,1,1,"{price_display}"')
             
-            # Código de barras baixo (Y=60), altura 30 dots
+            # Código de barras baixo (Y=75), altura 30 dots
             # Usando proporção 1,1 para ficar mais estreito e caber
             if barcode:
-                commands.append(f'BARCODE {x},60,"128",30,0,0,1,1,"{barcode}"')
-                commands.append(f'TEXT {x},95,"1",0,1,1,"{barcode}"')
+                commands.append(f'BARCODE {x},75,"128",30,0,0,1,1,"{barcode}"')
+                commands.append(f'TEXT {x},110,"1",0,1,1,"{barcode}"')
                 
         commands.append(f'PRINT {copies},1')
     
