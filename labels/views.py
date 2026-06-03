@@ -52,3 +52,14 @@ def sign_qz(request):
         return Response(base64.b64encode(signature).decode('utf-8'), status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+from rest_framework import viewsets, filters
+from .models import Product
+from .serializers import ProductSerializer
+
+class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['codigo', 'descricao', 'codigo_de_barras']
+
